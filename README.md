@@ -1,3 +1,31 @@
+# INSTALL
+
+I assume you have npm installed.
+
+## Getting a test blockchain
+- Install Ganache GUI=> http://truffleframework.com/ganache/
+- OR install command line : npm install -g ganache-cli
+- Run ganache
+## Installing deployment framework
+- Install truffle => "npm install -g truffle"
+
+## Updating dependencies (openzeppelin)
+- git submodule update --init --recursive
+
+## Compiling the contracts (done automatically on migrate too)
+"truffle compile"
+
+##Testing
+- Run Ganache
+- go to /test => "truffle test filename.js"
+
+# DEPLOYMENT DETAILS
+
+- compiled contracts go to ./build
+- openzeppelin referenced contracts are invisible and installed by openzeppelin
+- contracts/test contains fake HORSE contracts and fake Betting contracts for testing purposes
+- test/*.js contains test code, one file per contract
+
 # MyLittleEthorse gamification project
 
 ## I] Current status
