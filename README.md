@@ -159,7 +159,6 @@ It also contains an activable system where only races of a specific list are con
 We expect to redeploy this contract often because it heavily relies on Betting.sol code.
 
 
-
 | Function                                                 | Description                                                                                |
 | -------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
 | addLegitRace(address newRace)                            | Adds a new race to the legit races list                                                    | 
@@ -174,28 +173,35 @@ HORSE developers have a special function they can call to add funds to the contr
 
 
 
-| Function | Description |
-| -------- | -------- |
-| addFunds(uint256 amount)     | Used to add funds (like a HORSE donation)     |
-| deposit(uint256 amount) | Transfer HORSE to this wallets balance |
-| withdraw(uint256 amount) | Transfer HORSE from the wallet to the user |
-| transferFromAndTo(address account_from, address account_to, uint256 amount) | Allows an approved spender to withdraw any amount of HORSE from any user!!! |
-| addApprovedSpender(address spender) | Allows the owner to add addresses which can withdraw from this contract without validation |
+| Function                                                                    | Description                                   |
+| --------------------------------------------------------------------------- | --------------------------------------------- |
+| addFunds(uint256 amount)                                                    | Used to add funds (like a HORSE donation)     |
+| deposit(uint256 amount)                                                     | Transfer HORSE to this wallets balance        |
+| withdraw(uint256 amount)                                                    | Transfer HORSE from the wallet to the user    |
+| transferFromAndTo(address account_from, address account_to, uint256 amount) | Allows an approved spender to withdraw any amount of HORSE from any user!!!                                                                                                        |
+| addApprovedSpender(address spender)                                         | Allows the owner to add addresses which can withdraw from this contract without validation                                                                                         |
+
 #### HorseyGame
 The main game code. This contract allows claiming a new HRSY, renaming and upgrading it for different fees. Players can: 
 
 -Burn Basic and Rare HRSYs for HXP
 -Upgrade Rare and Rewards HRSYs using HXP
+-Claim rewards from upgraded HRSY tokens
+-Buy HXP Credits with HORSE
+-Rename HRSY tokens
 
 All fees go into equities distribution to the devs however (and the overall HORSE dividend pool) .
 A set percent of these equities can be injected back into the reserved HORSE pool.
+All purchases are done in HORSE, the user must have a credited HORSE account in HorseyWallet contract.
+
 | Function                                      | Description                                                               |
 | --------------------------------------------- | ------------------------------------------------------------------------- |
 | claim(address raceAddress)                    | Allows a user to claim a special horsey with the same dna as the race one |
-| renameHorsey(uint256 tokenId, string newName) | Allows a user to give a horsey a name or rename it                        |
+| rename(uint256 tokenId, string newName)       | Allows a user to give a horsey a name or rename it                        |
 | burn(uint256 tokenId)                         | Allows a user to burn a token he owns to get HXP                          |
 | upgrade(uint256 tokenId)                      | Allows to upgrade a horsey to increase its upgradeCounter value           |
-
+| claimRWRD(uint256 tokenId)                    | Allows to claim the reward in HORSE from a Reward HRSY token you own      |
+| purchaseHXP(int256 amount)                    | Allows to buy HXP credits in exchange for HORSE                           |
 
 #### HorseyExchange
 This is the Horsey market, also called HRSY DEX. It allows for:
@@ -218,13 +224,10 @@ The pilot allows voters to select a function to execute with a specific paramete
 The pilot also distributes equities to mle developers.
 Currently callable on vote functions :
 
-
-
 | Function             | Usage                                                           |
 | -------------------- | --------------------------------------------------------------- |
 | setConfigValue       | Changes the value inside the config map                         |
 | setValidator         | Changes the address of the RaceValidator contract               |
-| addLegitRace         | Adds a race address to the list of legit races of the validator |
 | setMarketFees        | Changes the % of every transaction the market takes as fees     |
 | addApprovedSpender   | Adds a contract address allowed to operate the Wallet           |
 | changeMaster         | Changes the address of the master contract for HRSYToken        |
