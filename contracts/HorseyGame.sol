@@ -59,6 +59,10 @@ contract HorseyGame is WalletUser, Pausable, Ownable {
     WalletUser(walletAddress)
     Pausable()
     Ownable() public {
+        require(validatorAddress != address(0) && tokenAddress != address(0),"Invalid addresses");
+
+        HRSYToken = IHRSYToken(tokenAddress);
+        validator = IRaceValidator(validatorAddress);
         //setting default values
 
         //%
@@ -109,9 +113,6 @@ contract HorseyGame is WalletUser, Pausable, Ownable {
 
         //bonus period multiplier in %
         config["BONUSMULT"] = 200;
-
-        HRSYToken = IHRSYToken(tokenAddress);
-        validator = IRaceValidator(validatorAddress);
     }
 
     /**
@@ -192,8 +193,49 @@ contract HorseyGame is WalletUser, Pausable, Ownable {
             emit RewardClaimed(tokenId,msg.sender,horseAmount);
         }
     }
+
     /**
-        @dev Allows a user to claim a special horsey with the same dna as the race one
+        @dev Claiming HORSE from multiple reward HRSY
+        @param tokenIds Array of ID of the token to burn
+    */
+    function claimMultRWRD(uint256[] tokenIds) external
+    whenNotPaused() {
+        uint256 totalHorseAmount = 0;
+        //first try to claim from all tokens
+        uint arrayLength = tokenIds.length;
+        for (uint i = 0; i < arrayLength; i++) {
+            require(HRSYToken.ownerOf(tokenIds[i]) == msg.sender, "Caller is not owner of this token");
+
+            address originalOwner = HRSYToken.owners(tokenIds[i]);
+            //compute the amount of unclaimed wins
+            uint256 amount = wins[originalOwner] - rewarded[tokenIds[i]];
+            if (amount > 0) {
+                uint8 upgradeCounter;
+                (,,,upgradeCounter) = HRSYToken.horseys(tokenIds[i]);
+                require(upgradeCounter > 1,"You must upgrade this HRSY before claiming");
+                //set this to the current counter to prevent claiming multiple times from same wins
+                rewarded[tokenIds[i]] = wins[originalOwner];
+
+                if(upgradeCounter == 2) {
+                    totalHorseAmount = totalHorseAmount + config["RWRD0"] * amount;
+                } else if(upgradeCounter == 3) {
+                    totalHorseAmount = totalHorseAmount + config["RWRD1"] * amount;
+                } else  if(upgradeCounter == 4) {
+                    totalHorseAmount = totalHorseAmount + config["RWRD2"] * amount;
+                }
+                
+                emit RewardClaimed(tokenIds[i],msg.sender,totalHorseAmount);
+            }
+        }
+
+        if(totalHorseAmount > 0) {
+            //credit user the HORSE
+            _processPayment(address(_wallet),msg.sender,totalHorseAmount);
+        }
+    }
+
+    /**
+        @dev Allows a user to claim an HRSY for a fee in HORSE
             Cant be used on paused
             The sender has to be a winner of the race and must never have claimed a horsey from this race
         @param raceAddress The race's address
@@ -230,6 +272,52 @@ contract HorseyGame is WalletUser, Pausable, Ownable {
         //add this to the users wins counter
         wins[msg.sender] = wins[msg.sender] + 1;
         emit Claimed(raceAddress, msg.sender, id);
+    }
+
+    /**
+        @dev Allows a user to claim a list of HRSY tokens for a fee in HORSE
+            Reduces a bit the gas cost per token
+            Cant be used on paused
+            The sender has to be a winner of the race and must never have claimed a horsey from this race
+        @param raceContractIds Array of races addresses
+    */
+    function claimMult(address[] raceContractIds) external
+    whenNotPaused()
+    {
+        //useful variables
+        bytes32 winner;
+        bool res;
+        uint256 betAmount;
+        uint256 totalBetAmount;
+        //first try to claim all tokens
+        uint arrayLength = raceContractIds.length;
+        for (uint i = 0; i < arrayLength; i++) {
+            //check that the user won
+           
+            (res,winner,betAmount,totalBetAmount) = validator.validateWinner(raceContractIds[i], msg.sender);
+            require(res,"validateWinner returned false");
+
+            //check that the user bet enough
+            uint16 rewardHorseyCount = HRSYToken.count(msg.sender);
+            uint256 minBet = config["MINBET"];
+            if(rewardHorseyCount > 0) {
+                //the minimal bet is based on the amount of reward horseys
+                //use the 2x function 0.01 0.02 0.04 0.08 0.16 0.32 0.64 1.25
+                minBet = rewardHorseyCount * config["MINBET"] / 100 * config["BETMULT"];
+            }
+            //make sure he respected the minimal bet amount
+            require(totalBetAmount >= minBet,"You didnt bet enough and cant claim from this race!");
+
+            //unique property is already be checked by minting function
+            uint256 id = _generate_horsey(raceContractIds[i], msg.sender, winner, betAmount);
+            emit Claimed(raceContractIds[i], msg.sender, id);
+        }
+        //add this to the users wins counter
+        wins[msg.sender] = wins[msg.sender] + arrayLength;
+        //now process the payment
+        uint256 poolFee = config["CLAIMFEE"];
+        //get the HORSE from user account
+        _processPayment(msg.sender,address(_wallet),poolFee*arrayLength);
     }
 
     /**
@@ -307,6 +395,68 @@ contract HorseyGame is WalletUser, Pausable, Ownable {
         _processPayment(msg.sender,address(_wallet),poolFee);    
         
         emit Burned(tokenId);
+    }
+
+    /**
+        @dev Allows a user to burn multiple tokens at once
+            Cant be called while paused
+        @param tokenIds Array of ID of the token to burn
+    */
+    function burnMult(uint256[] tokenIds) external 
+    whenNotPaused() {
+        //used multiple times
+        uint8 upgradeCounter;
+        address contractId;
+        uint32 betAmountFinney;
+        uint256 totalAmountHXP = 0;
+        uint256 totalPoolFee = 0;
+        //first try to burn all tokens
+        uint arrayLength = tokenIds.length;
+        for (uint i = 0; i < arrayLength; i++) {
+            require(HRSYToken.ownerOf(tokenIds[i]) == msg.sender, "Caller is not owner of this token");
+
+            (,contractId,betAmountFinney,upgradeCounter) = HRSYToken.horseys(tokenIds[i]);
+            uint256 betAmount = uint256(_shiftLeft(bytes32(betAmountFinney),15));
+            uint amountHXP = 0;
+            uint fee = 0;
+            if(upgradeCounter == 0) {
+                amountHXP = config["BURN0"];
+                totalPoolFee = totalPoolFee + config["BURNFEE0"];
+            } else if(upgradeCounter == 1) {
+                amountHXP = config["BURN1"];
+                totalPoolFee = totalPoolFee + config["BURNFEE1"];
+            } else {
+                revert("You can't burn this token");
+            }
+            //if the bet is superior to minimal bet an HXP bonus could apply
+            if((betAmount >= config["MINBET"])) {
+                uint256 maxBonus = config["MAXBET"] / 100 * config["BURNMULT"];
+                uint burnBonus = betAmount / config["MAXBET"] * maxBonus;
+                //clamp the HXP bonus
+                if(burnBonus > maxBonus) {
+                    burnBonus = maxBonus;
+                }
+                amountHXP = amountHXP + burnBonus;
+            }
+            
+            uint32 timestamp = validator.getRaceTime(contractId);
+            //SPECIAL CODE FOR BONUS PERIOD
+            if((timestamp > config["BPERIODBEGIN"]) && (timestamp < config["BPERIODEND"])) {
+                amountHXP = amountHXP / 100 * config["BONUSMULT"];
+            }
+            //destroy horsey
+            HRSYToken.unstoreHorsey(tokenIds[i]);
+
+            totalAmountHXP = totalAmountHXP + amountHXP;
+            
+            emit Burned(tokenIds[i]);
+        }
+
+        //get the HORSE from user account
+        _processPayment(msg.sender,address(_wallet),totalPoolFee);    
+            
+        //credit this user HXP for all the HRSY he burned
+        _wallet.creditHXP(msg.sender,totalAmountHXP);
     }
 
     /**

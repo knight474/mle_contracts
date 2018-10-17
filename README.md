@@ -158,8 +158,6 @@ Allows to test if a specific user did really win an Ethorse race.
 It also contains an activable system where only races of a specific list are considered legit, for all the others it will return false. This is to use in case cheaters start to deploy fake contracts to claim HRSY tokens from them.
 We expect to redeploy this contract often because it heavily relies on Betting.sol code.
 
-
-
 | Function                                                 | Description                                                                                |
 | -------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
 | addLegitRace(address newRace)                            | Adds a new race to the legit races list                                                    | 
@@ -172,15 +170,15 @@ We decided to develop a wallet contract specific to MLE.
 A user can deposit HORSE on it, and withdraw anytime. All Horsey contracts are allowed to process HORSE payments from this wallet.
 HORSE developers have a special function they can call to add funds to the contract.
 
+| Function                                                                      | Description                                                                                |
+| ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| addFunds(uint256 amount)                                                      | Used to add funds (like a HORSE donation)                                                  |
+| deposit(uint256 amount)                                                       | Transfer HORSE to this wallets balance                                                     |
+| withdraw(uint256 amount)                                                      | Transfer HORSE from the wallet to the user                                                 |
+| transferFromAndTo(address account_from, address account_to, uint256 amount)   | Allows an approved spender to withdraw any amount of HORSE from any user!!!                |
+| addApprovedSpender(address spender)                                           | Allows the owner to add addresses which can withdraw from this contract without validation |
 
 
-| Function | Description |
-| -------- | -------- |
-| addFunds(uint256 amount)     | Used to add funds (like a HORSE donation)     |
-| deposit(uint256 amount) | Transfer HORSE to this wallets balance |
-| withdraw(uint256 amount) | Transfer HORSE from the wallet to the user |
-| transferFromAndTo(address account_from, address account_to, uint256 amount) | Allows an approved spender to withdraw any amount of HORSE from any user!!! |
-| addApprovedSpender(address spender) | Allows the owner to add addresses which can withdraw from this contract without validation |
 #### HorseyGame
 The main game code. This contract allows claiming a new HRSY, renaming and upgrading it for different fees. Players can: 
 
@@ -192,8 +190,12 @@ A set percent of these equities can be injected back into the reserved HORSE poo
 | Function                                      | Description                                                               |
 | --------------------------------------------- | ------------------------------------------------------------------------- |
 | claim(address raceAddress)                    | Allows a user to claim a special horsey with the same dna as the race one |
+| claimMult(address[] raceContractIds)          | Allows a user to claim a multiple HRSY at once                            |
+| claimRWRD(address raceAddress)                | Claiming HORSE from a reward HRSY                                         |
+| claimMultRWRD(address raceAddress)            | Claiming HORSE from multiple reward HRSY                                  |
 | renameHorsey(uint256 tokenId, string newName) | Allows a user to give a horsey a name or rename it                        |
 | burn(uint256 tokenId)                         | Allows a user to burn a token he owns to get HXP                          |
+| burnMult(uint256[] tokenIds)                  | Allows a user to burn multiple tokens for HXP                             |
 | upgrade(uint256 tokenId)                      | Allows to upgrade a horsey to increase its upgradeCounter value           |
 
 
@@ -217,8 +219,6 @@ The market has fees (to be set in the future).
 The pilot allows voters to select a function to execute with a specific parameter. You can see the current set of executable functions below.
 The pilot also distributes equities to mle developers.
 Currently callable on vote functions :
-
-
 
 | Function             | Usage                                                           |
 | -------------------- | --------------------------------------------------------------- |
