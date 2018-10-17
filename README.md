@@ -158,6 +158,10 @@ Allows to test if a specific user did really win an Ethorse race.
 It also contains an activable system where only races of a specific list are considered legit, for all the others it will return false. This is to use in case cheaters start to deploy fake contracts to claim HRSY tokens from them.
 We expect to redeploy this contract often because it heavily relies on Betting.sol code.
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> cb810fad28a03e60a1e0abc5681bc890ae73a6c4
 | Function                                                 | Description                                                                                |
 | -------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
 | addLegitRace(address newRace)                            | Adds a new race to the legit races list                                                    | 
@@ -184,9 +188,14 @@ The main game code. This contract allows claiming a new HRSY, renaming and upgra
 
 -Burn Basic and Rare HRSYs for HXP
 -Upgrade Rare and Rewards HRSYs using HXP
+-Claim rewards from upgraded HRSY tokens
+-Buy HXP Credits with HORSE
+-Rename HRSY tokens
 
 All fees go into equities distribution to the devs however (and the overall HORSE dividend pool) .
 A set percent of these equities can be injected back into the reserved HORSE pool.
+All purchases are done in HORSE, the user must have a credited HORSE account in HorseyWallet contract.
+
 | Function                                      | Description                                                               |
 | --------------------------------------------- | ------------------------------------------------------------------------- |
 | claim(address raceAddress)                    | Allows a user to claim a special horsey with the same dna as the race one |
@@ -197,7 +206,8 @@ A set percent of these equities can be injected back into the reserved HORSE poo
 | burn(uint256 tokenId)                         | Allows a user to burn a token he owns to get HXP                          |
 | burnMult(uint256[] tokenIds)                  | Allows a user to burn multiple tokens for HXP                             |
 | upgrade(uint256 tokenId)                      | Allows to upgrade a horsey to increase its upgradeCounter value           |
-
+| claimRWRD(uint256 tokenId)                    | Allows to claim the reward in HORSE from a Reward HRSY token you own      |
+| purchaseHXP(int256 amount)                    | Allows to buy HXP credits in exchange for HORSE                           |
 
 #### HorseyExchange
 This is the Horsey market, also called HRSY DEX. It allows for:
@@ -224,7 +234,6 @@ Currently callable on vote functions :
 | -------------------- | --------------------------------------------------------------- |
 | setConfigValue       | Changes the value inside the config map                         |
 | setValidator         | Changes the address of the RaceValidator contract               |
-| addLegitRace         | Adds a race address to the list of legit races of the validator |
 | setMarketFees        | Changes the % of every transaction the market takes as fees     |
 | addApprovedSpender   | Adds a contract address allowed to operate the Wallet           |
 | changeMaster         | Changes the address of the master contract for HRSYToken        |
