@@ -1,3 +1,17 @@
+# PROGRESS
+
+| Contract                | Description                                                  | State              | Tests                |
+| ----------------------- | ------------------------------------------------------------ | ------------------ | -------------------- |
+| HorseyExchange          | Selling HRSY tokens on a private DEX                         | Draft 1            | TODO                 |
+| HorseyGame              | The main game contract                                       | Draft 1            | In progress          |
+| HorseyWallet            | Handles HORSE and HXP holdings of MLE players                | Draft 1            | Done                 |
+| HRSYToken               | ERC721 token, deployed only once and can't be changed        | Draft 1            | Done                 |
+| RaceValidator           | Allows to validate from the EVM that a player won a race     | Draft 1            | Done                 |
+| WalletUser              | Just a helper contract handling links to HorseyWallet        | Draft 1            | NA                   |
+| HorseyPilot             | Democratic control contract owner of all Horsey contracts    | In progress        | Not started          |
+| HORSEDEX                | The ETH/HORSE DEX contract                                   | Not started        | Not started          |
+
+
 # INSTALL
 
 I assume you have npm installed.
