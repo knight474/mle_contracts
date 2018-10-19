@@ -2,14 +2,14 @@
 
 | Contract                | Description                                                  | State              | Tests                |
 | ----------------------- | ------------------------------------------------------------ | ------------------ | -------------------- |
-| HorseyExchange          | Selling HRSY tokens on a private DEX                         | Draft 1            | TODO                 |
-| HorseyGame              | The main game contract                                       | Draft 1            | In progress          |
+| HorseyExchange          | Selling HRSY tokens on a private DEX                         | Draft 2            | TODO                 |
+| HorseyGame              | The main game contract                                       | Draft 2            | In progress          |
 | HorseyWallet            | Handles HORSE and HXP holdings of MLE players                | Draft 1            | Done                 |
 | HRSYToken               | ERC721 token, deployed only once and can't be changed        | Draft 1            | Done                 |
 | RaceValidator           | Allows to validate from the EVM that a player won a race     | Draft 1            | Done                 |
 | WalletUser              | Just a helper contract handling links to HorseyWallet        | Draft 1            | NA                   |
 | HorseyPilot             | Democratic control contract owner of all Horsey contracts    | Draft 1            | Not started          |
-| HORSEDEX                | The ETH/HORSE DEX contract                                   | Not started        | Not started          |
+| HORSEDEX                | The ETH/HORSE DEX contract                                   | Draft 1            | Not started          |
 
 
 # INSTALL
@@ -128,6 +128,11 @@ Rare HRSY are obtained either directly by claiming them via Ethorse races they w
 Rare and Rewards HRSYs will  be tradable on the market. 
 
 ![](https://s3.us-east-2.amazonaws.com/mledev/img6.jpg)
+
+### HORSEDEX the ETH/HORSE pair exchange
+
+The goal is to provide a contract which can use the provided HORSE pool to sell it for ETH.
+This contract will allow users to place orders for HORSE for a price a bit below market price. The collected ETH is then used to purchase HORSE from markets.
 
 ## III] Smart Contracts
 
