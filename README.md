@@ -184,10 +184,6 @@ Allows to test if a specific user did really win an Ethorse race.
 It also contains an activable system where only races of a specific list are considered legit, for all the others it will return false. This is to use in case cheaters start to deploy fake contracts to claim HRSY tokens from them.
 We expect to redeploy this contract often because it heavily relies on Betting.sol code.
 
-<<<<<<< HEAD
-=======
-
->>>>>>> cb810fad28a03e60a1e0abc5681bc890ae73a6c4
 | Function                                                 | Description                                                                                |
 | -------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
 | addLegitRace(address newRace)                            | Adds a new race to the legit races list                                                    | 
