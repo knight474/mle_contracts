@@ -133,6 +133,13 @@ Rare and Rewards HRSYs will  be tradable on the market.
 
 The goal is to provide a contract which can use the provided HORSE pool to sell it for ETH.
 This contract will allow users to place orders for HORSE for a price a bit below market price. The collected ETH is then used to purchase HORSE from markets.
+The way it's supposed to work to remain a trustless solution : 
+1/ The user selects the amount of HORSE to buy
+2/ The user's client fetches the current price from exchanges, removes 5% and creates the transaction to HorseDex with the amount of HORSE to buy and the ETH payload
+3/ HorseDex contract registers the order and emits an event
+4/ A server watches the event and checks that the price of this order is indeed 5% below current exchange price
+5/ If ok, the server sends a transaction to HorseDex to process the order, else it sends a transaction to decline it
+6/ The user either gets his ETH back or the HORSE he ordered
 
 ## III] Smart Contracts
 
@@ -258,6 +265,17 @@ Currently callable on vote functions :
 | changeMaster         | Changes the address of the master contract for HRSYToken        |
 | pause                | Pauses HorseyGame and HorseyExchange contracts                  |
 | unpause              | Unpauses HorseyGame and HorseyExchange contracts                |
+
+#### HorseDex
+
+This contract allows trustless exchange on the ETH/HORSE pair.
+
+| Function                                          | Usage                                                                 |
+| ------------------------------------------------- | --------------------------------------------------------------------- |
+| placeOrder(uint256 amount) external payable       | Places a new order for the sender for amount HORSE                    |
+| cancelOrder()                                     | Allows a buyer to cancel his own order                                |
+| rejectOrder(address buyer)                        | Used by the owner (server) to reject an order if price isnt agreeable |
+| processOrder(address buyer)                       | Used by the owner (server) to fulfill an order if price is agreeable  |
 
 ## IV] Screenshots
 
