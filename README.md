@@ -8,7 +8,7 @@
 | HRSYToken               | ERC721 token, deployed only once and can't be changed        | Draft 1            | Done                 |
 | RaceValidator           | Allows to validate from the EVM that a player won a race     | Draft 1            | Done                 |
 | WalletUser              | Just a helper contract handling links to HorseyWallet        | Draft 1            | NA                   |
-| HorseyPilot             | Democratic control contract owner of all Horsey contracts    | In progress        | Not started          |
+| HorseyPilot             | Democratic control contract owner of all Horsey contracts    | Draft 1            | Not started          |
 | HORSEDEX                | The ETH/HORSE DEX contract                                   | Not started        | Not started          |
 
 
