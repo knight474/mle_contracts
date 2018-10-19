@@ -71,6 +71,8 @@ contract HorseyGame is WalletUser, Pausable, Ownable {
         config["DEVEQ1"] = 10; //10% for the devs from the CONVFEE
         config["DEVEQ2"] = 20; //20% for the devs from operation fees
 
+        config["CREATOREQ"] = 20; //20% HORSE goes to the RWRD HRSY creator
+
         //HORSE
         //Amount of HORSE required to claim and rename a token
         config["CLAIMFEE"] = 10 ether;
@@ -186,10 +188,14 @@ contract HorseyGame is WalletUser, Pausable, Ownable {
             } else  if(upgradeCounter == 4) {
                 horseAmount = config["RWRD2"] * amount;
             }
-
+            //credit the original creator some HORSE
+            uint256 creatorDue = horseAmount / 100 * config["CREATOREQ"];
+            if(creatorDue > 0) {
+                _wallet.transferFromAndTo(address(_wallet),originalOwner,creatorDue);
+            }
             //credit user the HORSE
-            _processPayment(address(_wallet),msg.sender,horseAmount);    
-
+            _wallet.transferFromAndTo(address(_wallet),msg.sender,horseAmount - creatorDue);
+            
             emit RewardClaimed(tokenId,msg.sender,horseAmount);
         }
     }
@@ -201,8 +207,10 @@ contract HorseyGame is WalletUser, Pausable, Ownable {
     function claimMultRWRD(uint256[] tokenIds) external
     whenNotPaused() {
         uint256 totalHorseAmount = 0;
+
         //first try to claim from all tokens
         uint arrayLength = tokenIds.length;
+        require(arrayLength <= 10, "Maximum 10 at a time");
         for (uint i = 0; i < arrayLength; i++) {
             require(HRSYToken.ownerOf(tokenIds[i]) == msg.sender, "Caller is not owner of this token");
 
@@ -215,14 +223,20 @@ contract HorseyGame is WalletUser, Pausable, Ownable {
                 require(upgradeCounter > 1,"You must upgrade this HRSY before claiming");
                 //set this to the current counter to prevent claiming multiple times from same wins
                 rewarded[tokenIds[i]] = wins[originalOwner];
-
+                uint256 horseRewardAmount = 0;
                 if(upgradeCounter == 2) {
-                    totalHorseAmount = totalHorseAmount + config["RWRD0"] * amount;
+                    horseRewardAmount = config["RWRD0"] * amount;
                 } else if(upgradeCounter == 3) {
-                    totalHorseAmount = totalHorseAmount + config["RWRD1"] * amount;
+                    horseRewardAmount = config["RWRD1"] * amount;
                 } else  if(upgradeCounter == 4) {
-                    totalHorseAmount = totalHorseAmount + config["RWRD2"] * amount;
+                    horseRewardAmount = config["RWRD2"] * amount;
                 }
+                uint256 creatorDue = horseRewardAmount / 100 * config["CREATOREQ"];
+                if(creatorDue > 0) {
+                    _wallet.transferFromAndTo(address(_wallet),originalOwner,creatorDue);
+                }
+
+                totalHorseAmount = totalHorseAmount + (horseRewardAmount - creatorDue);
                 
                 emit RewardClaimed(tokenIds[i],msg.sender,totalHorseAmount);
             }
@@ -230,7 +244,7 @@ contract HorseyGame is WalletUser, Pausable, Ownable {
 
         if(totalHorseAmount > 0) {
             //credit user the HORSE
-            _processPayment(address(_wallet),msg.sender,totalHorseAmount);
+            _wallet.transferFromAndTo(address(_wallet),msg.sender,totalHorseAmount);
         }
     }
 
@@ -265,7 +279,7 @@ contract HorseyGame is WalletUser, Pausable, Ownable {
         uint256 poolFee = config["CLAIMFEE"];
         
         //get the HORSE from user account
-        _processPayment(msg.sender,address(_wallet),poolFee);
+        _processPayment(msg.sender,poolFee);
        
         //unique property is already be checked by minting function
         uint256 id = _generate_horsey(raceAddress, msg.sender, winner, betAmount);
@@ -291,6 +305,9 @@ contract HorseyGame is WalletUser, Pausable, Ownable {
         uint256 totalBetAmount;
         //first try to claim all tokens
         uint arrayLength = raceContractIds.length;
+
+        require(arrayLength <= 10, "Maximum 10 at a time");
+        uint16 length = uint16(arrayLength);
         for (uint i = 0; i < arrayLength; i++) {
             //check that the user won
            
@@ -313,11 +330,11 @@ contract HorseyGame is WalletUser, Pausable, Ownable {
             emit Claimed(raceContractIds[i], msg.sender, id);
         }
         //add this to the users wins counter
-        wins[msg.sender] = wins[msg.sender] + arrayLength;
+        wins[msg.sender] = wins[msg.sender] + length;
         //now process the payment
         uint256 poolFee = config["CLAIMFEE"];
         //get the HORSE from user account
-        _processPayment(msg.sender,address(_wallet),poolFee*arrayLength);
+        _processPayment(msg.sender,poolFee*arrayLength);
     }
 
     /**
@@ -336,7 +353,7 @@ contract HorseyGame is WalletUser, Pausable, Ownable {
         uint256 poolFee = renamingFee;
         
         //get the HORSE from user account
-        _processPayment(msg.sender,address(_wallet),poolFee);
+        _processPayment(msg.sender,poolFee);
 
         //store the new name
         HRSYToken.storeName(tokenId,newName);
@@ -392,7 +409,7 @@ contract HorseyGame is WalletUser, Pausable, Ownable {
         uint256 poolFee = fee;
         
         //get the HORSE from user account
-        _processPayment(msg.sender,address(_wallet),poolFee);    
+        _processPayment(msg.sender,poolFee);    
         
         emit Burned(tokenId);
     }
@@ -410,15 +427,15 @@ contract HorseyGame is WalletUser, Pausable, Ownable {
         uint32 betAmountFinney;
         uint256 totalAmountHXP = 0;
         uint256 totalPoolFee = 0;
+        require(tokenIds.length <= 10, "Maximum 10 at a time");
         //first try to burn all tokens
-        uint arrayLength = tokenIds.length;
-        for (uint i = 0; i < arrayLength; i++) {
+        for (uint i = 0; i < tokenIds.length; i++) {
             require(HRSYToken.ownerOf(tokenIds[i]) == msg.sender, "Caller is not owner of this token");
 
             (,contractId,betAmountFinney,upgradeCounter) = HRSYToken.horseys(tokenIds[i]);
             uint256 betAmount = uint256(_shiftLeft(bytes32(betAmountFinney),15));
             uint amountHXP = 0;
-            uint fee = 0;
+
             if(upgradeCounter == 0) {
                 amountHXP = config["BURN0"];
                 totalPoolFee = totalPoolFee + config["BURNFEE0"];
@@ -453,7 +470,7 @@ contract HorseyGame is WalletUser, Pausable, Ownable {
         }
 
         //get the HORSE from user account
-        _processPayment(msg.sender,address(_wallet),totalPoolFee);    
+        _processPayment(msg.sender,totalPoolFee);    
             
         //credit this user HXP for all the HRSY he burned
         _wallet.creditHXP(msg.sender,totalAmountHXP);
@@ -508,7 +525,7 @@ contract HorseyGame is WalletUser, Pausable, Ownable {
         uint256 poolFee = config["UPGRFEE"];
         
         //get the HORSE from user account
-        _processPayment(msg.sender,address(_wallet),poolFee);   
+        _processPayment(msg.sender,poolFee);   
         emit Upgraded(tokenId);
     }
 
@@ -561,14 +578,14 @@ contract HorseyGame is WalletUser, Pausable, Ownable {
     /**
         @dev Helpers to process payments in HORSE and applying fees
     */
-    function _processPayment(address from, address to, uint256 amount) internal {
+    function _processPayment(address from, uint256 amount) internal {
         //get the HORSE from user account
         //dont process if amount is 0 (its allowed though)
         if(amount > 0) {
-            require(_wallet.balanceOf(from) >= amount,"Insufficient HORSE funds");
-            _wallet.transferFromAndTo(from,to,amount);
             //small part of the pool belongs to dev, store this amount here
             devCut = devCut + (amount / 100 * config["DEVEQ2"]);
+            //fetch the HORSE from the address and credit it
+            _wallet.transferFromAndTo(from,address(_wallet),amount);
         }   
     }
 

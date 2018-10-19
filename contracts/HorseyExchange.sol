@@ -26,8 +26,14 @@ contract HorseyExchange is WalletUser, Pausable, Ownable, ERC721Holder { //also 
     /// @dev Fee applied to market maker - measured as percentage
     uint256 public devEquity = 50;
 
+    /// @dev Percent of the sale price going to the original owner of a token when its sold
+    uint256 public creatorEquity = 10;
+
     /// @dev  HRSY TOKEN
     IERC721 public HRSYToken;
+
+    /// @dev Devs cut is the amount of HORSE earned by devs through their equity
+    uint256 devCut;
 
     /**
         @dev used to store the price and the owner address of a token on sale
@@ -76,6 +82,16 @@ contract HorseyExchange is WalletUser, Pausable, Ownable, ERC721Holder { //also 
     onlyOwner()
     {
         devEquity = equity;
+    }
+
+    /**
+        @dev Allows the owner to change original token creator equity
+        @param equity The new equity to apply (can be zero)
+    */
+    function setCreatorEquity(uint256 equity) external
+    onlyOwner()
+    {
+        creatorEquity = equity;
     }
 
     /// @return the tokens on sale based on the user address
@@ -161,13 +177,18 @@ contract HorseyExchange is WalletUser, Pausable, Ownable, ERC721Holder { //also 
         //Add to collected fee amount payable to DEVS
         uint256 collectedFees = totalToPay - sale.price;
         uint256 devFees = collectedFees / 100 * devEquity;
+        
+        //pay the original owner
+        address originalOwner = IHRSYToken(HRSYToken).owners(tokenId);
+        uint256 creatorDue = sale.price / 100 * creatorEquity; 
+        _wallet.transferFromAndTo(msg.sender,originalOwner,creatorDue);
         //pay the seller
-        _wallet.transferFromAndTo(msg.sender,sale.owner,sale.price);
+        _wallet.transferFromAndTo(msg.sender,sale.owner,sale.price-creatorDue);
         //pay the market fee to pool
-        _wallet.transferFromAndTo(msg.sender,address(_wallet),collectedFees-devFees);
+        _wallet.transferFromAndTo(msg.sender,address(_wallet),collectedFees);
         //pay the devs
-        _wallet.transferFromAndTo(msg.sender,address(this),devFees);
-
+        devCut = devCut + devFees;
+    
         //Reset barn tracker for user
         _removeTokenFromBarn(tokenId,  sale.owner);
 
@@ -186,11 +207,11 @@ contract HorseyExchange is WalletUser, Pausable, Ownable, ERC721Holder { //also 
     */
     function withdraw() external 
     onlyOwner()  {
-        uint256 balance = _wallet.balanceOf(address(this));
-        if(balance > 0) {
-            _wallet.withdraw(balance); //get all the HORSE we earned from the wallet
+        if(devCut > 0) {
+            _wallet.withdrawPool(devCut); //get all the HORSE we earned from the wallet
             //send them to our owner
-            _horseToken.transfer(owner(),balance);
+            _horseToken.transfer(owner(),devCut);
+            devCut = 0;
         }
     }
 

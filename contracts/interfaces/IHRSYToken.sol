@@ -14,6 +14,15 @@ interface IHRSYToken {
     function owners(uint256 tokenId) external view returns (address);
     /// @dev Master is the current Horsey contract using this coin
     function master() external view returns (address);
+    /// @dev inherited from ownable and pausable
+    function owner() external view returns (address);
+    function pause() external;
+    function unpause() external;
+    /**
+        @dev Allows to change the address of the current Horsey contract
+        @param newMaster Address of the current Horsey contract
+    */
+    function changeMaster(address newMaster) external;
     /**
         @dev Stores a horsey name
         @param tokenId Horsey token id

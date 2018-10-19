@@ -35,4 +35,18 @@ interface IHorseyWallet {
         @param amount Amount of HXP to add to the funds account
     */
     function spendHXP(address account, uint256 amount) external;
+
+    function owner() external view returns (address);
+
+    /**
+        @dev Allows the owner to add addresses which can withdraw from this contract without validation
+        @param spender The address of an allowed spender
+    */
+    function addApprovedSpender(address spender) external;
+
+    /**
+        @dev Disallows the owner to add addresses which can withdraw from this contract without validation
+        @param spender The address of an allowed spender
+    */
+    function removeApprovedSpender(address spender) external;
 }
