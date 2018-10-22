@@ -1,15 +1,19 @@
 # PROGRESS
 
-| Contract                | Description                                                  | State              | Tests                |
-| ----------------------- | ------------------------------------------------------------ | ------------------ | -------------------- |
-| HorseyExchange          | Selling HRSY tokens on a private DEX                         | Draft 2            | TODO                 |
-| HorseyGame              | The main game contract                                       | Draft 2            | In progress          |
-| HorseyWallet            | Handles HORSE and HXP holdings of MLE players                | Draft 1            | Done                 |
-| HRSYToken               | ERC721 token, deployed only once and can't be changed        | Draft 1            | Done                 |
-| RaceValidator           | Allows to validate from the EVM that a player won a race     | Draft 1            | Done                 |
-| WalletUser              | Just a helper contract handling links to HorseyWallet        | Draft 1            | NA                   |
-| HorseyPilot             | Democratic control contract owner of all Horsey contracts    | Draft 1            | Not started          |
-| HORSEDEX                | The ETH/HORSE DEX contract                                   | Draft 1            | Not started          |
+| Contract                | Description                                                  | State              | Tests                | Kovan                                      |
+| ----------------------- | ------------------------------------------------------------ | ------------------ | -------------------- | ------------------------------------------ |
+| HorseyExchange          | Selling HRSY tokens on a private DEX                         | Draft 2            | TODO                 | 0xabeabb5b91ce723735215d48346bcf0125b1b792 |
+| HorseyGame              | The main game contract                                       | Draft 2            | In progress          | 0xd6f606ee754e0c6c6bfcdf399d3959ab57882475 |
+| HorseyWallet            | Handles HORSE and HXP holdings of MLE players                | Draft 1            | Done                 | 0x4a30985050eef73012c2abed7edda7c83da3a1e5 |
+| HRSYToken               | ERC721 token, deployed only once and can't be changed        | Draft 1            | Done                 | 0xa41081c7174df011930a0ac16cfdf92e0504d34c |
+| RaceValidator           | Allows to validate from the EVM that a player won a race     | Draft 1            | Done                 |                                            |
+| WalletUser              | Just a helper contract handling links to HorseyWallet        | Draft 1            | NA                   |                                            |
+| HorseyPilot             | Democratic control contract owner of all Horsey contracts    | Draft 1            | Not started          |                                            |
+| HORSEDEX                | The ETH/HORSE DEX contract                                   | Draft 1            | Not started          |                                            |
+
+Additional contracts for testing :
+FakeERC20 (HORSE simulator) - deployed on kovan : 22/10/18 : 0xc0abc65b39fc202084efd106e419e542a674f536
+Fake Race Validator (always returning true) - deployed on kovan : 22/10/18 : 0xb9f9c19151c07f6a4f395959f3e31cd5bfd7eb1b
 
 
 # INSTALL
