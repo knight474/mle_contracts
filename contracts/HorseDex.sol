@@ -96,7 +96,7 @@ contract HorseDex is WalletUser, Ownable, Pausable {
         @param buyer The order creator
     */
     function _removeOrder(address buyer) internal {
-        Bid memory bid = orders[msg.sender];
+        Bid memory bid = orders[buyer];
         //return the eth
         require(bid.buyer != address(0),"Order not found");
         msg.sender.transfer(bid.value);
