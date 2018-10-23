@@ -3,6 +3,14 @@ pragma solidity ^0.4.24;
 import "./WalletUser.sol";
 import "../openzeppelin-solidity/contracts/lifecycle/Pausable.sol";
 import "../openzeppelin-solidity/contracts/ownership/Ownable.sol";
+import "../openzeppelin-solidity/contracts/math/SafeMath.sol";
+
+
+interface EtherDelta {
+    function deposit() payable external;
+    function withdrawToken(address token, uint256 amount) external;
+    function trade(address tokenGet, uint amountGet, address tokenGive, uint amountGive, uint expires, uint nonce, address user, uint8 v, bytes32 r, bytes32 s, uint amount) external;
+}
 
 /**
     @title A decentralized exchange for the ETH/HORSE pair
@@ -26,6 +34,8 @@ contract HorseDex is WalletUser, Ownable, Pausable {
 
     ///@dev Maps buyers to their orders/bids
     mapping(address => Bid) public orders;
+
+    EtherDelta public tradeContract = EtherDelta(0x8d12A197cB00D4747a1fe03395095ce2A5CC6819);
 
     /**
         @dev Contracts constructor
@@ -71,6 +81,33 @@ contract HorseDex is WalletUser, Ownable, Pausable {
     onlyOwner() {
         _removeOrder(buyer);
         emit OrderRejected(buyer);
+    }
+
+    /**
+        @dev Called by the server to purchase HORSE from etherdelta (forkdelta)
+        Uses the collected ETH to buy HORSE
+        Has to be called for each order to purchase from
+        @param amountGet Sellers order data
+        @param amountGive Sellers order data
+        @param expires Sellers order data
+        @param nonce Sellers order data
+        @param user Sellers order data
+        @param v Sellers order data
+        @param r Sellers order data
+        @param s Sellers order data
+        @param amount The amount of HORSE to buy
+    */
+    function purchaseHORSE(uint amountGet, uint amountGive, uint expires, uint nonce, address user, uint8 v, bytes32 r, bytes32 s, uint amount) external
+    onlyOwner() {
+        //compute the amount of ETH to pay in order to acquire "amount" HORSE from this order at this price
+        //deposit the right amount of ETH to EtherDelta for this trade
+        tradeContract.deposit.value(SafeMath.div(SafeMath.mul(amountGive,amount),amountGet))();
+        //buy amountGet quantity of HORSE token using amountGive ETH (token 0x0 = ETH currency) + the sellers order data
+        tradeContract.trade(0x5B0751713b2527d7f002c0c4e2a37e1219610A6B, amountGet, 0x0, amountGive, expires, nonce, user, v, r, s, amount);
+        //withdraw the bought tokens from etherdelta
+        tradeContract.withdrawToken(0x5B0751713b2527d7f002c0c4e2a37e1219610A6B, amountGet);
+        //send the bought tokens to the pool
+        _horseToken.transfer(address(_wallet),amountGet);
     }
 
     /**

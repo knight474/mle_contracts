@@ -271,7 +271,7 @@ contract HorseyGame is WalletUser, Pausable, Ownable {
         if(rewardHorseyCount > 0) {
             //the minimal bet is based on the amount of reward horseys
             //use the 2x function 0.01 0.02 0.04 0.08 0.16 0.32 0.64 1.25
-            minBet = rewardHorseyCount * config["MINBET"] / 100 * config["BETMULT"];
+            minBet = rewardHorseyCount * (config["MINBET"] / 100 * config["BETMULT"]);
         }
         //make sure he respected the minimal bet amount
         require(totalBetAmount >= minBet,"You didnt bet enough and cant claim from this race!");
@@ -320,7 +320,7 @@ contract HorseyGame is WalletUser, Pausable, Ownable {
             if(rewardHorseyCount > 0) {
                 //the minimal bet is based on the amount of reward horseys
                 //use the 2x function 0.01 0.02 0.04 0.08 0.16 0.32 0.64 1.25
-                minBet = rewardHorseyCount * config["MINBET"] / 100 * config["BETMULT"];
+                minBet = rewardHorseyCount * (config["MINBET"] / 100 * config["BETMULT"]);
             }
             //make sure he respected the minimal bet amount
             require(totalBetAmount >= minBet,"You didnt bet enough and cant claim from this race!");
