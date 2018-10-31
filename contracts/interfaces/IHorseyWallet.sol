@@ -7,6 +7,12 @@ interface IHorseyWallet {
     */
     function withdraw(uint256 amount) external;
     /**
+        @dev Transfer HORSE from the user to wallet
+        WALLET MUST BE APPROVED
+        @param amount Amount of HORSE to send
+    */
+    function deposit(uint256 amount) external;
+    /**
         @dev Transfer HORSE from the wallets' pool to the devs
         @param amount Amount of HORSE to withdraw from this wallets' pool
     */
