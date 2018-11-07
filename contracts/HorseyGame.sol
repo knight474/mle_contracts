@@ -283,6 +283,7 @@ contract HorseyGame is WalletUser, Pausable, Ownable {
        
         //unique property is already be checked by minting function
         uint256 id = _generate_horsey(raceAddress, msg.sender, winner, betAmount);
+        require(!HRSYToken.cemetery(id),"This horsey was already claimed and burned");
         //add this to the users wins counter
         wins[msg.sender] = wins[msg.sender] + 1;
         emit Claimed(raceAddress, msg.sender, id);

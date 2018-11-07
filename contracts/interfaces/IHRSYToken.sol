@@ -12,6 +12,8 @@ interface IHRSYToken {
     function count(address client) external view returns (uint16);
     /// @dev Maps a RWRD HRSY token id to its original owner
     function owners(uint256 tokenId) external view returns (address);
+    /// @dev Allows to check if a horsey was burned
+    function cemetery(uint256 tokenId) external view returns (bool);
     /// @dev Master is the current Horsey contract using this coin
     function master() external view returns (address);
     /// @dev inherited from ownable and pausable

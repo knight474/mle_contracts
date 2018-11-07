@@ -37,6 +37,9 @@ contract HRSYToken is Ownable,ERC721Full {
     /// @dev Maps a user to the amount of reward horseys he created
     mapping(address => uint16) public count;
 
+    /// @dev Allows to remember all burned horseys
+    mapping(uint256 => bool) public cemetery;
+
     /// @dev Master is the current Horsey contract using this coin
     address public master;
 
@@ -138,10 +141,11 @@ contract HRSYToken is Ownable,ERC721Full {
     function unstoreHorsey(uint256 tokenId) public
     onlyMaster()
     {
-        require(_exists(tokenId),"token not found");
         _burn(ownerOf(tokenId),tokenId);
         delete horseys[tokenId];
         delete names[tokenId];
+        //register in cemetery
+        cemetery[tokenId] = true;
     }
 
     /// @dev requires the address to be non null
