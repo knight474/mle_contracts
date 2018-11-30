@@ -166,19 +166,7 @@ contract HorseAuction is Ownable, Pausable {
 
         //if not first bidder, send back the losers ETH!
         if(bundle.highestBidder != address(0)) {
-            //this can be abused by having a revert function in the fallback function
-            //of a malicious contract
-            uint len;
-            address transferTo = bundle.highestBidder;
-            assembly { 
-                len := extcodesize(transferTo) 
-                }
-            if(len == 0) {
-                transferTo.transfer(bundle.currentBid);
-            } else {
-                //old highestBidder is a contract, use the withdrawal pattern
-                balanceOf[bundle.highestBidder] = balanceOf[bundle.highestBidder].add(bundle.currentBid);
-            }
+            _safeTransfer(bundle.highestBidder,bundle.currentBid);
         }
         
         //replace the older highest bidder
@@ -204,10 +192,10 @@ contract HorseAuction is Ownable, Pausable {
         //did we get any bids?
         if(bundle.currentBid > 0) {
             //compute the amount to keep
-            uint256 commission = bundle.currentBid / 1000 * _commission;
+            uint256 commission = bundle.currentBid.div(1000).mul(_commission);
             //give the seller his ETH
-            bundle.seller.transfer(bundle.currentBid-commission);
-            _collected = _collected + commission;
+            _safeTransfer(bundle.seller,bundle.currentBid.sub(commission));
+            _collected = _collected.add(commission);
         } else {
             //just give me back my token
             to = bundle.seller;
@@ -238,6 +226,25 @@ contract HorseAuction is Ownable, Pausable {
         if(balanceOf[msg.sender] > 0) {
             balanceOf[msg.sender] = 0;
             msg.sender.transfer(balanceOf[msg.sender]);
+        }
+    }
+
+    /**
+        @dev checks if who is a contract BEFORE sending it ETH
+        if who is a contract, use withdrawal patern instead
+        allows preventing the "revert in fallback function" exploit
+    */
+    function _safeTransfer(address who, uint256 what) internal {
+        //this can be abused by having a revert function in the fallback function
+        //of a malicious contract, so we fallback to the withdrawal pattern if receiver is a contract
+        uint len;
+        assembly { len := extcodesize(who) }
+        if(len == 0) {
+            //not a contract, we can safely send him eth
+            who.transfer(what);
+        } else {
+            //is a contract, use the withdrawal pattern
+            balanceOf[who] = balanceOf[who].add(what);
         }
     }
 
