@@ -2,6 +2,7 @@ pragma solidity ^0.4.24;
 
 import "../openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import "../openzeppelin-solidity/contracts/ownership/Ownable.sol";
+import "../openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 /**
     @title HorseyWallet
@@ -9,6 +10,9 @@ import "../openzeppelin-solidity/contracts/ownership/Ownable.sol";
     The player must store HORSE here in order to play
 */
 contract HorseyWallet is Ownable {
+
+    using SafeMath for uint256;
+
     /// @dev Triggered when a user deposits HORSE to this contract
     event Deposit(address indexed from, uint256 amount);
     /// @dev Triggered when a user takes his HORSE from this wallets credit
@@ -44,7 +48,7 @@ contract HorseyWallet is Ownable {
     function addFunds(uint256 amount) external {
          //transfer HORSE to self
         require(horseToken.transferFrom(msg.sender,address(this),amount),"Token transfer failed");
-        balanceOf[address(this)] = balanceOf[address(this)] + amount;
+        balanceOf[address(this)] = balanceOf[address(this)].add(amount);
     }
 
     /**
@@ -54,7 +58,7 @@ contract HorseyWallet is Ownable {
     function deposit(uint256 amount) external {
         //credit horse to this balance
         require(horseToken.transferFrom(msg.sender,address(this),amount),"Token transfer failed");
-        balanceOf[msg.sender] = balanceOf[msg.sender] + amount;
+        balanceOf[msg.sender] = balanceOf[msg.sender].add(amount);
         emit Deposit(msg.sender,amount);
     }
 
@@ -66,7 +70,7 @@ contract HorseyWallet is Ownable {
     holdsEnough(msg.sender,amount) {
         //try to send to this user the amount he owns
         require(horseToken.transfer(msg.sender,amount),"Token transfer failed");
-        balanceOf[msg.sender] = balanceOf[msg.sender] - amount;
+        balanceOf[msg.sender] = balanceOf[msg.sender].sub(amount);
         emit Withdrawal(msg.sender,amount);
     }
 
@@ -78,7 +82,7 @@ contract HorseyWallet is Ownable {
     holdsEnough(address(this),amount)
     isSpender(msg.sender) {
         require(horseToken.transfer(msg.sender,amount),"Token transfer failed");
-        balanceOf[address(this)] = balanceOf[address(this)] - amount;
+        balanceOf[address(this)] = balanceOf[address(this)].sub(amount);
     }
 
     /**
@@ -91,8 +95,8 @@ contract HorseyWallet is Ownable {
     holdsEnough(account_from,amount)
     isSpender(msg.sender) {
         require(account_from != account_to,"Source and destination bust be different!");
-        balanceOf[account_to] = balanceOf[account_to] + amount;
-        balanceOf[account_from] = balanceOf[account_from] - amount;
+        balanceOf[account_to] = balanceOf[account_to].add(amount);
+        balanceOf[account_from] = balanceOf[account_from].sub(amount);
         emit Payment(account_from,account_to,amount);
     }
 
@@ -103,7 +107,7 @@ contract HorseyWallet is Ownable {
     */
     function creditHXP(address account, uint256 amount) external
     isSpender(msg.sender) {
-        balanceOfHXP[account] = balanceOfHXP[account] + amount;
+        balanceOfHXP[account] = balanceOfHXP[account].add(amount);
     }
 
     /**
@@ -114,7 +118,7 @@ contract HorseyWallet is Ownable {
     function spendHXP(address account, uint256 amount) external
     isSpender(msg.sender) {
         require(balanceOfHXP[account] >= amount,"Insufficient HXP funds");
-        balanceOfHXP[account] = balanceOfHXP[account] - amount;
+        balanceOfHXP[account] = balanceOfHXP[account].sub(amount);
     }
 
     /**

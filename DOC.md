@@ -1,6 +1,6 @@
 # Ethorse passive : technical overview
 
-## On automatization and gas costs
+## Introduction on automation and gas costs
 
 The EVM (Ethereum Virtual Machine) is generally pretty bad in automatization since every action must be trigerred by an external source (an address) and provided enough gas for execution. Moreso, every action is limited in complexity since a maximum of 7M gas is allowed per transaction.
 Therefore some questions are raised about how to handle the contract needs as defined in "Ethorse Passive : Functionality Overview".
@@ -17,7 +17,7 @@ Without the withdrawal pattern, the ethorse contract would have to loop through 
 
 Generaly speaking centralization in crypto-land is **BAD**.
 
-Two reasons for that:
+Three reasons for that:
 1. Users will have to trust the system at some point
 2. It adds running costs in server hosting and possible processing gas
 3. Renders the dApp technically non dapp since without the server, functionality is hindered
@@ -34,28 +34,64 @@ In this configuration, we respect the fact that each user will be handled throug
 Now, we can write this friendly server ourselves and publish its specifications and code, thus insuring users trust.
 The dApp is technically not decentralized anymore, BUT if we take our server down, the community can easily bring it online by itself and keep the application running, insuring the most important part of decentralized applications : **they can only die when nobody cares**.
 
-## Implementation suggestion 1
+## Implementation thoughts
 
-### Smart contract part
+The first concern would be to limit the amount of transactions required. We will consider 2 scenarios for now.
 
-#### Usage
+### Worst case scenario
 
-1. The user deposits N ETH to his name into the contract
-2. Part of his funds go into the "3%" fund (*see note 1*)
-3. The user must then UNPAUSE the auto betting by selecting one or 2 pairs and ratios (50/50, 70/30, ...) + amount per race + max races per day
-4. ~~The user can select if any winnings will go back to the pool (default) or kept safe elsewhere~~
-5. The user can PAUSE the auto betting anytime and if all the races he took part in are resolved, he can withdraw or change the auto betting settings to unpause
+If we want each race contract to work like it does now, every user must be handled by a bot which sends transactions bet by bet.
+With our current stable userbase (20 players), lets estimate Ethorse usage gas prices :
 
-#### Rules
+| Action  | Gas cost | Frequency per race |
+| ------- | -------- | ------------------ |
+| Bet     | 91000    | 2.0                |
+| Claim   | 40000    | 0.66               |
 
-1. Ethorse 2.5% dividends also go into the "3%" fund
-2. A certain amount of ETH is available to the auto betting system
+So lets imagine that all of the 20 players bet on 2 races and claim 66% of the time, the average gas cost per user would be : 91000 * 2 + 40000 * 0.66 = 182000 + 26400 = 208400.
+Lets round it up to 200k. If our very limited user base is using auto betting system : 20 * 200k = 4M gas per race.
+The transactions need to arrive in less than an hour to be reliable, this means about 8 gwei to be on the safe side (at this moment, but needs to be dynamically adjusted). 
+**Thats a 0.032 ETH per race in fees for only 20 players.**
 
-#### note 1 
-How do we figure out how much goes to everyone?
+If every player bets the minimum and plays 2 coins, 3 races a day (which will probably happend at launch) thats 0.4 eth of volume per race, 1.2 eth daily.
+With a standard player brinding 0.06 eth of daily volume, thats 0.003 for the dividends pool, 0.0016 eth will go to gas fees, **auto betting costing more than 50% of the profit**.
 
+### Pool scenario
 
-### Server part
+#### A bit of perspective
 
+In this case, we change the first idea of auto betting a bit, in order to allow for players to be regrouped into multiple pools.
+The idea behind that is to represent the bet of multiple players with a single transaction on the race.
+The person would be able to chose between multiple parameters, and depending on the settings, his funds will join a "betting pool" of players.
+Lets find a reasonable amount of pools to represent our passive bettors.
 
-## Passive income
+If we allow people to bet 0.01, 0.02 and 0.05 eth per coin per race.
+If we allow people to chose between betting on 3 or all races of a day.
+If we allow people to bet on BTC,ETH,LTC or any Duo of these (6 possibilities).
+
+We end up with 3 * 2 * 6 = 36 possibilities = 36 pools.
+In this configuration, no matter how much users we have, the maximum amount of bets to place per race would be 36.
+Some choices will be widely more popular and I expect that in practice, only 6-7 pools to be used at any given moment, but it's much harder to guess. Only used pools will end up as effective bets.
+
+Depending on how much choice do we give to users, by using this technique, the amount of pools can rapidly grow and invalidate the technique.
+
+It would be very efficient to define 10 pools and limit the choice to that.
+
+#### Limitations
+
+A user can't lose as long as the pool isnt empty, since he owns a part of this pool.
+It's a bit harder to "pause" betting for a specific user.
+It's harder to know how much of a pool belongs to a specific user.
+Adding and removing people to and from the pool result in a complex computation of who owns what, the possibility of which is still to determine.
+
+#### What happens to a pool
+
+For example a 0.01 eth on ETH&LTC pool of 10 users will result in a bet of 0.1 eth on ETH and 0.1eth on LTC on every race.
+Over time the pool would either grow or shrink compared to the other pools. Each user who deposited funds into the pool owns a % of it and can withdraw at any time except when a race is running.
+Based on this, 
+
+## Thoughts on passive income
+
+Isn't passive income basically holding HORSE token? Most bettors seem to be interested by quick profit so I'm not 100% sure what is the audience for this idea.
+The user will bet on the performance of a coin/a pairing over time instead of a specific race, as expected by Ethorse Passive. He will greatly reduce the risk of running out of funds, but also reduce the reward.
+We could see an increased race volume and solve the "first bettor incentive" using that. However active bettors would be able to play the odds.

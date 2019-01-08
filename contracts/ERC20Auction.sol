@@ -141,7 +141,7 @@ contract HorseAuction is Ownable, Pausable {
         Bundle storage newBundle = bundles[bundleId];
         newBundle.token = token.contractAddress;
         newBundle.amount = amount;
-        newBundle.expires = block.timestamp + duration;
+        newBundle.expires = block.timestamp.add(duration);
         newBundle.seller = msg.sender;
         newBundle.increment = increment;
         //transfer the required amount of the token from the seller to this contract

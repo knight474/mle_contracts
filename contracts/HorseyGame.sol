@@ -5,12 +5,16 @@ import "./interfaces/IRaceValidator.sol";
 import "./WalletUser.sol";
 import "../openzeppelin-solidity/contracts/lifecycle/Pausable.sol";
 import "../openzeppelin-solidity/contracts/ownership/Ownable.sol";
+import "../openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 /**
     @title HorseyToken ERC721 Token
     @dev Horse contract - horse derives from Pausable
 */
 contract HorseyGame is WalletUser, Pausable, Ownable {
+
+    using SafeMath for uint256;
+
     /// @dev called when someone claims his HORSE from a RWRD HRSY
     event RewardClaimed(uint256 tokenId, address to, uint256 Amount);
 
@@ -47,6 +51,8 @@ contract HorseyGame is WalletUser, Pausable, Ownable {
     /// @dev Devs cut is the amount of HORSE earned by devs through their equity
     uint256 devCut;
 
+    uint256 constant HORSE =  10**18;
+
     /**
         @dev Contracts constructor
             Initializes token data
@@ -75,21 +81,21 @@ contract HorseyGame is WalletUser, Pausable, Ownable {
 
         //HORSE
         //Amount of HORSE required to claim and rename a token
-        config["CLAIMFEE"] = 10 ether;
-        config["RENAMEFEE"] = 5 ether;
+        config["CLAIMFEE"] = 10 * HORSE;
+        config["RENAMEFEE"] = 5 * HORSE;
 
         //Amount of HORSE sent to the player FOR EACH Reward HRSY when he wins
         //depends on the HRSY lvl (minimum lvl 3 required for RWRD0)
-        config["RWRD0"] = 500 ether;
-        config["RWRD1"] = 1500 ether;
-        config["RWRD2"] = 3000 ether;
+        config["RWRD0"] = 500 * HORSE;
+        config["RWRD1"] = 1500 * HORSE;
+        config["RWRD2"] = 3000 * HORSE;
 
         //Amount of HORSE required to burn a normal and a rare HRSY
-        config["BURNFEE0"] = 2 ether;
-        config["BURNFEE1"] = 10 ether;
+        config["BURNFEE0"] = 2 * HORSE;
+        config["BURNFEE1"] = 10 * HORSE;
 
         //Amount of HORSE required to lvl up an HRSY
-        config["UPGRFEE"] = 50 ether;
+        config["UPGRFEE"] = 50 * HORSE;
 
         //HXP
         //Burning rewards in HXP for a normal and a rare HRSY
@@ -145,8 +151,9 @@ contract HorseyGame is WalletUser, Pausable, Ownable {
         if(devCut > 0) {
             _wallet.withdrawPool(devCut); //get all the HORSE we earned from the wallet
             //send them to our owner
-            _horseToken.transfer(owner(),devCut);
+            uint256 toSend = devCut;
             devCut = 0;
+            _horseToken.transfer(owner(),toSend); 
         }
     }
 
@@ -173,6 +180,7 @@ contract HorseyGame is WalletUser, Pausable, Ownable {
     onlyOwnerOf(tokenId) {
         address originalOwner = HRSYToken.owners(tokenId);
         //compute the amount of unclaimed wins
+        require(rewarded[tokenId] <= wins[originalOwner],"rewarded > wins");
         uint256 amount = wins[originalOwner] - rewarded[tokenId];
         if (amount > 0) {
             uint8 upgradeCounter;
@@ -180,21 +188,15 @@ contract HorseyGame is WalletUser, Pausable, Ownable {
             require(upgradeCounter > 1,"You must upgrade this HRSY before claiming");
             //set this to the current counter to prevent claiming multiple times from same wins
             rewarded[tokenId] = wins[originalOwner];
-            uint256 horseAmount = 0;
-            if(upgradeCounter == 2) {
-                horseAmount = config["RWRD0"] * amount;
-            } else if(upgradeCounter == 3) {
-                horseAmount = config["RWRD1"] * amount;
-            } else  if(upgradeCounter == 4) {
-                horseAmount = config["RWRD2"] * amount;
-            }
+            uint256 horseAmount = _getSelectRWRD(upgradeCounter).mul(amount);
+           
             //credit the original creator some HORSE
-            uint256 creatorDue = horseAmount / 100 * config["CREATOREQ"];
+            uint256 creatorDue = horseAmount.div(100).mul(config["CREATOREQ"]);
             if(creatorDue > 0) {
                 _wallet.transferFromAndTo(address(_wallet),originalOwner,creatorDue);
             }
             //credit user the HORSE
-            _wallet.transferFromAndTo(address(_wallet),msg.sender,horseAmount - creatorDue);
+            _wallet.transferFromAndTo(address(_wallet),msg.sender,horseAmount.sub(creatorDue));
             
             emit RewardClaimed(tokenId,msg.sender,horseAmount);
         }
@@ -216,8 +218,9 @@ contract HorseyGame is WalletUser, Pausable, Ownable {
 
             address originalOwner = HRSYToken.owners(tokenIds[i]);
             //compute the amount of unclaimed wins
-            uint256 amount = wins[originalOwner] - rewarded[tokenIds[i]];
-            if (amount > 0) {
+            if(wins[originalOwner] > rewarded[tokenIds[i]]) {
+                //admissible for rewards
+                uint256 amount = wins[originalOwner] - rewarded[tokenIds[i]];
                 uint8 upgradeCounter;
                 (,,,upgradeCounter) = HRSYToken.horseys(tokenIds[i]);
                 require(upgradeCounter > 1,"You must upgrade this HRSY before claiming");
@@ -225,21 +228,22 @@ contract HorseyGame is WalletUser, Pausable, Ownable {
                 rewarded[tokenIds[i]] = wins[originalOwner];
                 uint256 horseRewardAmount = 0;
                 if(upgradeCounter == 2) {
-                    horseRewardAmount = config["RWRD0"] * amount;
+                    horseRewardAmount = config["RWRD0"].mul(amount);
                 } else if(upgradeCounter == 3) {
-                    horseRewardAmount = config["RWRD1"] * amount;
+                    horseRewardAmount = config["RWRD1"].mul(amount);
                 } else  if(upgradeCounter == 4) {
-                    horseRewardAmount = config["RWRD2"] * amount;
+                    horseRewardAmount = config["RWRD2"].mul(amount);
                 }
-                uint256 creatorDue = horseRewardAmount / 100 * config["CREATOREQ"];
+                uint256 creatorDue = horseRewardAmount.div(100).mul(config["CREATOREQ"]);
                 if(creatorDue > 0) {
                     _wallet.transferFromAndTo(address(_wallet),originalOwner,creatorDue);
                 }
 
-                totalHorseAmount = totalHorseAmount + (horseRewardAmount - creatorDue);
+                totalHorseAmount = totalHorseAmount.add(horseRewardAmount.sub(creatorDue));
                 
                 emit RewardClaimed(tokenIds[i],msg.sender,totalHorseAmount);
             }
+            
         }
 
         if(totalHorseAmount > 0) {
@@ -271,7 +275,7 @@ contract HorseyGame is WalletUser, Pausable, Ownable {
         if(rewardHorseyCount > 0) {
             //the minimal bet is based on the amount of reward horseys
             //use the 2x function 0.01 0.02 0.04 0.08 0.16 0.32 0.64 1.25
-            minBet = rewardHorseyCount * (config["MINBET"] / 100 * config["BETMULT"]);
+            minBet = rewardHorseyCount.mul(config["MINBET"].div(100).mul(config["BETMULT"]));
         }
         //make sure he respected the minimal bet amount
         require(totalBetAmount >= minBet,"You didnt bet enough and cant claim from this race!");
@@ -285,7 +289,7 @@ contract HorseyGame is WalletUser, Pausable, Ownable {
         uint256 id = _generate_horsey(raceAddress, msg.sender, winner, betAmount);
         require(!HRSYToken.cemetery(id),"This horsey was already claimed and burned");
         //add this to the users wins counter
-        wins[msg.sender] = wins[msg.sender] + 1;
+        wins[msg.sender] = wins[msg.sender].add(1);
         emit Claimed(raceAddress, msg.sender, id);
     }
 
@@ -321,7 +325,7 @@ contract HorseyGame is WalletUser, Pausable, Ownable {
             if(rewardHorseyCount > 0) {
                 //the minimal bet is based on the amount of reward horseys
                 //use the 2x function 0.01 0.02 0.04 0.08 0.16 0.32 0.64 1.25
-                minBet = rewardHorseyCount * (config["MINBET"] / 100 * config["BETMULT"]);
+                minBet = rewardHorseyCount.mul(config["MINBET"].div(100).mul(config["BETMULT"]));
             }
             //make sure he respected the minimal bet amount
             require(totalBetAmount >= minBet,"You didnt bet enough and cant claim from this race!");
@@ -331,7 +335,7 @@ contract HorseyGame is WalletUser, Pausable, Ownable {
             emit Claimed(raceContractIds[i], msg.sender, id);
         }
         //add this to the users wins counter
-        wins[msg.sender] = wins[msg.sender] + length;
+        wins[msg.sender] = wins[msg.sender].add(length);
         //now process the payment
         uint256 poolFee = config["CLAIMFEE"];
         //get the HORSE from user account
@@ -349,7 +353,7 @@ contract HorseyGame is WalletUser, Pausable, Ownable {
     whenNotPaused()
     onlyOwnerOf(tokenId) 
     {
-        uint256 renamingFee = config["RENAMEFEE"] * bytes(newName).length;
+        uint256 renamingFee = config["RENAMEFEE"].mul(bytes(newName).length);
 
         uint256 poolFee = renamingFee;
         
@@ -387,8 +391,8 @@ contract HorseyGame is WalletUser, Pausable, Ownable {
         }
         //if the bet is superior to minimal bet an HXP bonus could apply
         if((betAmount >= config["MINBET"])) {
-            uint256 maxBonus = config["MAXBET"] / 100 * config["BURNMULT"];
-            uint burnBonus = betAmount / config["MAXBET"] * maxBonus;
+            uint256 maxBonus = config["MAXBET"].div(100).mul(config["BURNMULT"]);
+            uint burnBonus = betAmount.div(config["MAXBET"]).mul(maxBonus);
             //clamp the HXP bonus
             if(burnBonus > maxBonus) {
                 burnBonus = maxBonus;
@@ -399,7 +403,7 @@ contract HorseyGame is WalletUser, Pausable, Ownable {
         uint32 timestamp = validator.getRaceTime(contractId);
         //SPECIAL CODE FOR BONUS PERIOD
         if((timestamp > config["BPERIODBEGIN"]) && (timestamp < config["BPERIODEND"])) {
-            amountHXP = amountHXP / 100 * config["BONUSMULT"];
+            amountHXP = amountHXP.div(100).mul(config["BONUSMULT"]);
         }
         //destroy horsey
         HRSYToken.unstoreHorsey(tokenId);
@@ -439,17 +443,17 @@ contract HorseyGame is WalletUser, Pausable, Ownable {
 
             if(upgradeCounter == 0) {
                 amountHXP = config["BURN0"];
-                totalPoolFee = totalPoolFee + config["BURNFEE0"];
+                totalPoolFee = totalPoolFee.add(config["BURNFEE0"]);
             } else if(upgradeCounter == 1) {
                 amountHXP = config["BURN1"];
-                totalPoolFee = totalPoolFee + config["BURNFEE1"];
+                totalPoolFee = totalPoolFee.add(config["BURNFEE1"]);
             } else {
                 revert("You can't burn this token");
             }
             //if the bet is superior to minimal bet an HXP bonus could apply
             if((betAmount >= config["MINBET"])) {
-                uint256 maxBonus = config["MAXBET"] / 100 * config["BURNMULT"];
-                uint burnBonus = betAmount / config["MAXBET"] * maxBonus;
+                uint256 maxBonus = config["MAXBET"].div(100).mul(config["BURNMULT"]);
+                uint burnBonus = betAmount.div(config["MAXBET"]).mul(maxBonus);
                 //clamp the HXP bonus
                 if(burnBonus > maxBonus) {
                     burnBonus = maxBonus;
@@ -460,12 +464,12 @@ contract HorseyGame is WalletUser, Pausable, Ownable {
             uint32 timestamp = validator.getRaceTime(contractId);
             //SPECIAL CODE FOR BONUS PERIOD
             if((timestamp > config["BPERIODBEGIN"]) && (timestamp < config["BPERIODEND"])) {
-                amountHXP = amountHXP / 100 * config["BONUSMULT"];
+                amountHXP = amountHXP.div(100).mul(config["BONUSMULT"]);
             }
             //destroy horsey
             HRSYToken.unstoreHorsey(tokenIds[i]);
 
-            totalAmountHXP = totalAmountHXP + amountHXP;
+            totalAmountHXP = totalAmountHXP.add(amountHXP);
             
             emit Burned(tokenIds[i]);
         }
@@ -537,17 +541,34 @@ contract HorseyGame is WalletUser, Pausable, Ownable {
     function purchaseHXP(uint256 amount) external
     whenNotPaused() {
         require(amount > 0,"You must purchase at least 1 HXP");
-        uint256 horseAmount = amount / config["CONVRATE"];
-        uint256 fee = (horseAmount / 100 * config["CONVFEE"]);
-        uint256 total = fee + horseAmount;
+        uint256 horseAmount = amount.div(config["CONVRATE"]);
+        uint256 fee = (horseAmount.div(100).mul(config["CONVFEE"]));
+        uint256 total = fee.add(horseAmount);
         //small part of the pool belongs to dev, store this amount here
-        devCut = devCut + (fee / 100 * config["DEVEQ1"]);
+        devCut = devCut.add(fee.div(100).mul(config["DEVEQ1"]));
         
         require(_wallet.balanceOf(msg.sender) >= total,"Insufficient HORSE funds");
         _wallet.transferFromAndTo(msg.sender,address(_wallet),total);
         _wallet.creditHXP(msg.sender,amount);
 
         emit HXPPurchased(msg.sender,amount);
+    }
+
+    /**
+        @dev Returns the right RWRD amount based on the upgradeCounter
+        @param upgradeCounter the current amount of times the HRSY was upgraded
+    */
+    function _getSelectRWRD(uint8 upgradeCounter) internal
+    returns (uint256) {
+        require(upgradeCounter >= 2 && upgradeCounter <= 4,"Only values between 2 and 4");
+
+        if(upgradeCounter == 2) {
+            return config["RWRD0"];
+        } else if(upgradeCounter == 3) {
+            return config["RWRD1"];
+        } else  if(upgradeCounter == 4) {
+            return config["RWRD2"];
+        }
     }
 
     /// @dev creates a special token id based on the race and the coin index
@@ -584,7 +605,7 @@ contract HorseyGame is WalletUser, Pausable, Ownable {
         //dont process if amount is 0 (its allowed though)
         if(amount > 0) {
             //small part of the pool belongs to dev, store this amount here
-            devCut = devCut + (amount / 100 * config["DEVEQ2"]);
+            devCut = devCut.add(amount.div(100).mul(config["DEVEQ2"]));
             //fetch the HORSE from the address and credit it
             _wallet.transferFromAndTo(from,address(_wallet),amount);
         }   
@@ -592,12 +613,12 @@ contract HorseyGame is WalletUser, Pausable, Ownable {
 
     /// @dev shifts a bytes32 right by n positions
     function _shiftRight(bytes32 data, uint n) internal pure returns (bytes32) {
-        return bytes32(uint256(data)/(2 ** n));
+        return bytes32(uint256(data).div(2 ** n));
     }
 
     /// @dev shifts a bytes32 left by n positions
     function _shiftLeft(bytes32 data, uint n) internal pure returns (bytes32) {
-        return bytes32(uint256(data)*(2 ** n));
+        return bytes32(uint256(data).div(2 ** n));
     }
 
     /// @dev requires the address to be non null
